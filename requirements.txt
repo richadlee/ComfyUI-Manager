@@ -1,7 +1,7 @@
 GitPython
 PyGithub
 matrix-nio
-transformers
+transformers==4.46.0
 huggingface-hub>0.20
 typer
 rich
