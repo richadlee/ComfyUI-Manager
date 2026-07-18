@@ -269,6 +269,23 @@ The following settings are applied based on the section marked as `is_default`.
     network_mode = <Set the network mode => public|private|offline>
     ```
 
+* New installations default to `security_level = strong` when the setting is
+  omitted. Existing `config.ini` values are preserved.
+* State-changing Manager APIs (install, update, uninstall, fix, model install,
+  snapshot restore/remove, configuration changes, and restart) accept only a
+  direct loopback TCP client. HTTP proxy headers are never trusted; requests
+  carrying `Forwarded`, `X-Forwarded-*`, `X-Real-IP`, `CF-Connecting-IP`, or
+  similar headers are rejected even when the proxy itself is on localhost.
+* To administer Manager, connect directly to `127.0.0.1` or use an SSH local
+  forward. If you need normal local node management, explicitly set
+  `security_level = normal`; the localhost-only boundary still applies.
+  The tunnel must terminate directly at ComfyUI's localhost listener, not at
+  Caddy or another HTTP reverse proxy. For a ComfyUI listener on port `18188`:
+  ```bash
+  ssh -L 18188:127.0.0.1:18188 -p <SSH_PORT> root@<INSTANCE_IP>
+  ```
+  Then open `http://127.0.0.1:18188` locally.
+
     * network_mode:
       - public: An environment that uses a typical public network.
       - private: An environment that uses a closed network, where a private node DB is configured via `channel_url`. (Uses cache if available)

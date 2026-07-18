@@ -8,6 +8,7 @@ import hashlib
 
 import folder_paths
 from server import PromptServer
+from manager_security import local_only, resolve_file_within_directory
 
 
 def extract_model_file_names(json_data):
@@ -54,6 +55,7 @@ def compute_sha256_checksum(filepath):
 
 
 @PromptServer.instance.routes.get("/manager/share_option")
+@local_only
 async def share_option(request):
     if "value" in request.rel_url.query:
         core.get_config()['share_option'] = request.rel_url.query['value']
@@ -123,6 +125,7 @@ def set_youml_settings(settings):
 
 
 @PromptServer.instance.routes.get("/manager/get_openart_auth")
+@local_only
 async def api_get_openart_auth(request):
     # print("Getting stored Matrix credentials...")
     openart_key = get_openart_auth()
@@ -132,6 +135,7 @@ async def api_get_openart_auth(request):
 
 
 @PromptServer.instance.routes.post("/manager/set_openart_auth")
+@local_only
 async def api_set_openart_auth(request):
     json_data = await request.json()
     openart_key = json_data['openart_key']
@@ -141,6 +145,7 @@ async def api_set_openart_auth(request):
 
 
 @PromptServer.instance.routes.get("/manager/get_matrix_auth")
+@local_only
 async def api_get_matrix_auth(request):
     # print("Getting stored Matrix credentials...")
     matrix_auth = get_matrix_auth()
@@ -150,6 +155,7 @@ async def api_get_matrix_auth(request):
 
 
 @PromptServer.instance.routes.get("/manager/youml/settings")
+@local_only
 async def api_get_youml_settings(request):
     youml_settings = get_youml_settings()
     if not youml_settings:
@@ -158,6 +164,7 @@ async def api_get_youml_settings(request):
 
 
 @PromptServer.instance.routes.post("/manager/youml/settings")
+@local_only
 async def api_set_youml_settings(request):
     json_data = await request.json()
     set_youml_settings(json.dumps(json_data))
@@ -165,6 +172,7 @@ async def api_set_youml_settings(request):
 
 
 @PromptServer.instance.routes.get("/manager/get_comfyworkflows_auth")
+@local_only
 async def api_get_comfyworkflows_auth(request):
     # Check if the user has provided Matrix credentials in a file called 'matrix_accesstoken'
     # in the same directory as the ComfyUI base folder
@@ -176,6 +184,7 @@ async def api_get_comfyworkflows_auth(request):
 
 
 @PromptServer.instance.routes.post("/manager/set_esheep_workflow_and_images")
+@local_only
 async def set_esheep_workflow_and_images(request):
     json_data = await request.json()
     with open(os.path.join(core.manager_files_path, "esheep_share_message.json"), "w", encoding='utf-8') as file:
@@ -184,6 +193,7 @@ async def set_esheep_workflow_and_images(request):
 
 
 @PromptServer.instance.routes.get("/manager/get_esheep_workflow_and_images")
+@local_only
 async def get_esheep_workflow_and_images(request):
     with open(os.path.join(core.manager_files_path, "esheep_share_message.json"), 'r', encoding='utf-8') as file:
         data = json.load(file)
@@ -212,6 +222,7 @@ def has_provided_comfyworkflows_auth(comfyworkflows_sharekey):
 
 
 @PromptServer.instance.routes.post("/manager/share")
+@local_only
 async def share_art(request):
     # get json data
     json_data = await request.json()
@@ -237,7 +248,9 @@ async def share_art(request):
         # for now, pick the first output
         output_to_share = potential_outputs[0]
 
-    assert output_to_share['type'] in ('image', 'output')
+    if not isinstance(output_to_share, dict) or output_to_share.get('type') not in ('image', 'output'):
+        return web.json_response({"error": "Invalid output selection."}, status=400)
+
     output_dir = folder_paths.get_output_directory()
 
     if output_to_share['type'] == 'image':
@@ -250,10 +263,14 @@ async def share_art(request):
         asset_filename = output_to_share['output']['filename']
         asset_subfolder = output_to_share['output']['subfolder']
 
-    if asset_subfolder:
-        asset_filepath = os.path.join(output_dir, asset_subfolder, asset_filename)
-    else:
-        asset_filepath = os.path.join(output_dir, asset_filename)
+    try:
+        asset_filepath = resolve_file_within_directory(
+            output_dir,
+            asset_subfolder or '',
+            asset_filename,
+        )
+    except (FileNotFoundError, TypeError, ValueError):
+        return web.json_response({"error": "Invalid output asset path."}, status=400)
 
     # get the mime type of the asset
     assetFileType = mimetypes.guess_type(asset_filepath)[0]

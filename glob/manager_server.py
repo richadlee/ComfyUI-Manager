@@ -22,6 +22,7 @@ import asyncio
 import queue
 
 import manager_downloader
+from manager_security import local_only
 
 
 logging.info(f"### Loading: ComfyUI-Manager ({core.version_str})")
@@ -702,6 +703,7 @@ async def fetch_customnode_mappings(request):
 
 
 @routes.get("/customnode/fetch_updates")
+@local_only
 async def fetch_updates(request):
     try:
         if request.rel_url.query["mode"] == "local":
@@ -729,6 +731,7 @@ async def fetch_updates(request):
 
 
 @routes.get("/manager/queue/update_all")
+@local_only
 async def update_all(request):
     if not is_allowed_security_level('middle'):
         logging.error(SECURITY_MESSAGE_MIDDLE_OR_BELOW)
@@ -829,6 +832,7 @@ async def installed_list(request):
 
 
 @routes.get("/customnode/getlist")
+@local_only
 async def fetch_customnode_list(request):
     """
     provide unified custom node list
@@ -962,6 +966,7 @@ async def get_snapshot_list(request):
 
 
 @routes.get("/snapshot/remove")
+@local_only
 async def remove_snapshot(request):
     if not is_allowed_security_level('middle'):
         logging.error(SECURITY_MESSAGE_MIDDLE_OR_BELOW)
@@ -980,6 +985,7 @@ async def remove_snapshot(request):
 
 
 @routes.get("/snapshot/restore")
+@local_only
 async def restore_snapshot(request):
     if not is_allowed_security_level('middle'):
         logging.error(SECURITY_MESSAGE_MIDDLE_OR_BELOW)
@@ -1014,6 +1020,7 @@ async def get_current_snapshot_api(request):
 
 
 @routes.get("/snapshot/save")
+@local_only
 async def save_snapshot(request):
     try:
         await core.save_snapshot_with_postfix('snapshot')
@@ -1170,12 +1177,14 @@ async def import_fail_info(request):
 
 
 @routes.post("/manager/queue/reinstall")
+@local_only
 async def reinstall_custom_node(request):
     await uninstall_custom_node(request)
     await install_custom_node(request)
 
 
 @routes.get("/manager/queue/reset")
+@local_only
 async def reset_queue(request):
     global task_queue
     task_queue = queue.Queue()
@@ -1198,6 +1207,7 @@ async def queue_count(request):
 
 
 @routes.post("/manager/queue/install")
+@local_only
 async def install_custom_node(request):
     if not is_allowed_security_level('middle'):
         logging.error(SECURITY_MESSAGE_MIDDLE_OR_BELOW)
@@ -1259,6 +1269,7 @@ async def install_custom_node(request):
 task_worker_thread:threading.Thread = None
 
 @routes.get("/manager/queue/start")
+@local_only
 async def queue_start(request):
     global nodepack_result
     global model_result
@@ -1277,6 +1288,7 @@ async def queue_start(request):
 
 
 @routes.post("/manager/queue/fix")
+@local_only
 async def fix_custom_node(request):
     if not is_allowed_security_level('middle'):
         logging.error(SECURITY_MESSAGE_GENERAL)
@@ -1299,6 +1311,7 @@ async def fix_custom_node(request):
 
 
 @routes.post("/customnode/install/git_url")
+@local_only
 async def install_custom_node_git_url(request):
     if not is_allowed_security_level('high'):
         logging.error(SECURITY_MESSAGE_NORMAL_MINUS)
@@ -1319,6 +1332,7 @@ async def install_custom_node_git_url(request):
 
 
 @routes.post("/customnode/install/pip")
+@local_only
 async def install_custom_node_pip(request):
     if not is_allowed_security_level('high'):
         logging.error(SECURITY_MESSAGE_NORMAL_MINUS)
@@ -1331,6 +1345,7 @@ async def install_custom_node_pip(request):
 
 
 @routes.post("/manager/queue/uninstall")
+@local_only
 async def uninstall_custom_node(request):
     if not is_allowed_security_level('middle'):
         logging.error(SECURITY_MESSAGE_MIDDLE_OR_BELOW)
@@ -1354,6 +1369,7 @@ async def uninstall_custom_node(request):
 
 
 @routes.post("/manager/queue/update")
+@local_only
 async def update_custom_node(request):
     if not is_allowed_security_level('middle'):
         logging.error(SECURITY_MESSAGE_MIDDLE_OR_BELOW)
@@ -1375,6 +1391,7 @@ async def update_custom_node(request):
 
 
 @routes.get("/manager/queue/update_comfyui")
+@local_only
 async def update_comfyui(request):
     is_stable = core.get_config()['update_policy'] != 'nightly-comfyui'
     task_queue.put(("update-comfyui", ('comfyui', is_stable)))
@@ -1382,6 +1399,7 @@ async def update_comfyui(request):
 
 
 @routes.get("/comfyui_manager/comfyui_versions")
+@local_only
 async def comfyui_versions(request):
     try:
         res, current, latest = core.get_comfyui_versions()
@@ -1393,6 +1411,7 @@ async def comfyui_versions(request):
 
 
 @routes.get("/comfyui_manager/comfyui_switch_version")
+@local_only
 async def comfyui_switch_version(request):
     try:
         if "ver" in request.rel_url.query:
@@ -1406,6 +1425,7 @@ async def comfyui_switch_version(request):
 
 
 @routes.post("/manager/queue/disable")
+@local_only
 async def disable_node(request):
     json_data = await request.json()
 
@@ -1441,6 +1461,7 @@ async def check_whitelist_for_model(item):
 
 
 @routes.post("/manager/queue/install_model")
+@local_only
 async def install_model(request):
     json_data = await request.json()
 
@@ -1473,6 +1494,7 @@ async def install_model(request):
 
 
 @routes.get("/manager/preview_method")
+@local_only
 async def preview_method(request):
     if "value" in request.rel_url.query:
         set_preview_method(request.rel_url.query['value'])
@@ -1484,6 +1506,7 @@ async def preview_method(request):
 
 
 @routes.get("/manager/db_mode")
+@local_only
 async def db_mode(request):
     if "value" in request.rel_url.query:
         set_db_mode(request.rel_url.query['value'])
@@ -1496,6 +1519,7 @@ async def db_mode(request):
 
 
 @routes.get("/manager/policy/component")
+@local_only
 async def component_policy(request):
     if "value" in request.rel_url.query:
         set_component_policy(request.rel_url.query['value'])
@@ -1507,6 +1531,7 @@ async def component_policy(request):
 
 
 @routes.get("/manager/policy/update")
+@local_only
 async def update_policy(request):
     if "value" in request.rel_url.query:
         set_update_policy(request.rel_url.query['value'])
@@ -1518,6 +1543,7 @@ async def update_policy(request):
 
 
 @routes.get("/manager/channel_url_list")
+@local_only
 async def channel_url_list(request):
     channels = core.get_channel_dict()
     if "value" in request.rel_url.query:
@@ -1602,6 +1628,7 @@ async def get_notice(request):
 
 
 @routes.get("/manager/reboot")
+@local_only
 def restart(self):
     if not is_allowed_security_level('middle'):
         logging.error(SECURITY_MESSAGE_MIDDLE_OR_BELOW)
@@ -1639,6 +1666,7 @@ def restart(self):
 
 
 @routes.post("/manager/component/save")
+@local_only
 async def save_component(request):
     try:
         data = await request.json()
@@ -1773,5 +1801,3 @@ cm_global.register_extension('ComfyUI-Manager',
                                  'name': 'ComfyUI Manager',
                                  'nodes': {},
                                  'description': 'This extension provides the ability to manage custom nodes in ComfyUI.', })
-
-
